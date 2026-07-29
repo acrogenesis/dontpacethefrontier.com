@@ -219,6 +219,42 @@ export function sanitizeAvatarUrl(url: string | null | undefined): string | null
   }
 }
 
+/**
+ * Sanitize optional user-authored text (title, comment).
+ * - No HTML / scripting markup
+ * - No URLs or common link forms (displayed comments stay plain text)
+ * - Keeps newlines; strips other control chars
+ * Safe even if the client ever used innerHTML (we still render via text nodes).
+ */
+export function sanitizeUserText(v: unknown, max: number): string | null {
+  if (typeof v !== "string") return null;
+  let t = v.normalize("NFC");
+
+  // Drop null + control chars except tab/newline/carriage return
+  t = t.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u0080-\u009F]/g, "");
+
+  // HTML tags and residual brackets (no markup)
+  t = t.replace(/<[^>]*>/g, " ");
+  t = t.replace(/[<>]/g, "");
+
+  // Markdown / common link forms: [label](url) → label
+  t = t.replace(/\[([^\]]*)\]\((?:https?:\/\/|\/\/|www\.)[^)\s]+\)/gi, "$1");
+  t = t.replace(/\[([^\]]*)\]\([^)\s]+\)/g, "$1");
+
+  // URLs and schemes (http, https, protocol-relative, bare www.)
+  t = t.replace(/https?:\/\/[^\s<>"']+/gi, " ");
+  t = t.replace(/\/\/[^\s<>"']+/g, " ");
+  t = t.replace(/\bwww\.[^\s<>"']+/gi, " ");
+  t = t.replace(/\b(?:javascript|data|vbscript)\s*:/gi, "");
+
+  // Collapse space left by removals; keep paragraph breaks
+  t = t.replace(/[^\S\n]+/g, " ");
+  t = t.replace(/ ?\n ?/g, "\n");
+  t = t.replace(/\n{3,}/g, "\n\n");
+  t = t.trim().slice(0, max);
+  return t || null;
+}
+
 export function mockEnabled(env: { X_DEV_MOCK?: string }): boolean {
   return env.X_DEV_MOCK === "1";
 }

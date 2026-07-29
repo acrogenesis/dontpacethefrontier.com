@@ -19,6 +19,7 @@ import {
   readFlowCookie,
   readJsonLimited,
   sanitizeAvatarUrl,
+  sanitizeUserText,
   shouldAcceptMockAuth,
   withSecurityHeaders,
 } from "./security";
@@ -53,21 +54,16 @@ function publicSignatory(row: Record<string, unknown>) {
     id: row.id,
     name: row.name,
     company: row.company,
-    title: row.title,
+    title: sanitizeUserText(row.title, 160),
     xHandle: row.x_handle,
     avatarUrl: sanitizeAvatarUrl(
       typeof row.avatar_url === "string" ? row.avatar_url : null,
     ),
-    comment: row.comment,
+    // Re-sanitize on read so older rows can't surface raw links/markup
+    comment: sanitizeUserText(row.comment, 2000),
     createdAt: row.created_at,
     verifiedVia: "x" as const,
   };
-}
-
-function cleanText(v: unknown, max: number): string | null {
-  if (typeof v !== "string") return null;
-  const t = v.trim().slice(0, max);
-  return t || null;
 }
 
 // ---------- API ----------
@@ -179,8 +175,8 @@ app.post("/api/auth/x/start", async (c) => {
   }
 
   const draft = {
-    title: cleanText(body.title, 160),
-    comment: cleanText(body.comment, 2000),
+    title: sanitizeUserText(body.title, 160),
+    comment: sanitizeUserText(body.comment, 2000),
   };
   const intent = parseAuthIntent(body.intent);
 

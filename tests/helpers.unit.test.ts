@@ -3,6 +3,7 @@ import {
   clampInt,
   mockEnabled,
   sanitizeAvatarUrl,
+  sanitizeUserText,
   shouldAcceptMockAuth,
   FLOW_COOKIE,
 } from "../src/security";
@@ -31,6 +32,39 @@ describe("sanitizeAvatarUrl", () => {
     expect(sanitizeAvatarUrl("http://pbs.twimg.com/x.jpg")).toBeNull();
     expect(sanitizeAvatarUrl("https://evil.com/x.jpg")).toBeNull();
     expect(sanitizeAvatarUrl("javascript:alert(1)")).toBeNull();
+  });
+});
+
+describe("sanitizeUserText", () => {
+  it("strips HTML/script markup so it cannot execute", () => {
+    // Tag contents remain as inert plain text (client uses createTextNode)
+    expect(sanitizeUserText("<script>alert(1)</script>hi", 200)).toBe(
+      "alert(1) hi",
+    );
+    expect(sanitizeUserText("hello <b>world</b>", 200)).toBe("hello world");
+    expect(sanitizeUserText("a <img onerror=x> b", 200)).toBe("a b");
+  });
+
+  it("strips URLs and link forms", () => {
+    expect(
+      sanitizeUserText("see https://evil.com/phish now", 200),
+    ).toBe("see now");
+    expect(sanitizeUserText("go www.spam.example/x", 200)).toBe("go");
+    expect(
+      sanitizeUserText("click [here](https://evil.com)", 200),
+    ).toBe("click here");
+    // Scheme removed; leftover is inert text
+    expect(sanitizeUserText("javascript:alert(1)", 200)).toBe("alert(1)");
+  });
+
+  it("keeps normal prose and newlines", () => {
+    expect(sanitizeUserText("Ship fast.\n\nPrice fairly.", 200)).toBe(
+      "Ship fast.\n\nPrice fairly.",
+    );
+  });
+
+  it("enforces max length", () => {
+    expect(sanitizeUserText("abcdef", 3)).toBe("abc");
   });
 });
 
