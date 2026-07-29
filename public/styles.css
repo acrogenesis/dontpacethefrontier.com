@@ -253,10 +253,19 @@ h1 {
 
 .btn-share {
   gap: 0.45rem;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.btn-share:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .btn-share .x-logo {
   font-size: 1.05rem;
+  color: var(--accent-soft);
 }
 
 .btn-row {
