@@ -678,11 +678,13 @@ textarea {
   letter-spacing: -0.01em;
 }
 
+/* Tighter clamp so medium-long comments actually hide text when truncated */
 .comment-body.is-clamped {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 6;
+  -webkit-line-clamp: 4;
   overflow: hidden;
+  /* line-clamp needs normal white-space; restore pre-wrap when expanded */
   white-space: normal;
 }
 

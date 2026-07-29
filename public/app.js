@@ -119,8 +119,6 @@ function renderSignatory(s) {
   return li;
 }
 
-const COMMENT_CLAMP_CHARS = 320;
-
 function renderComment(s) {
   const li = document.createElement("li");
   li.style.setProperty("--item-delay", nextItemDelay());
@@ -137,19 +135,8 @@ function renderComment(s) {
   appendText(quote, text);
   li.appendChild(quote);
 
-  if (text.length > COMMENT_CLAMP_CHARS) {
-    quote.classList.add("is-clamped");
-    const expand = document.createElement("button");
-    expand.type = "button";
-    expand.className = "comment-expand";
-    expand.textContent = "Show more";
-    expand.addEventListener("click", () => {
-      const open = quote.classList.toggle("is-clamped");
-      // toggle returns new state: true if class present (clamped)
-      expand.textContent = open ? "Show more" : "Show less";
-    });
-    li.appendChild(expand);
-  }
+  // Expand control is added after mount if the clamp actually hides text
+  // (see wireCommentExpand). Char-count alone is a poor signal.
 
   const footer = document.createElement("div");
   footer.className = "comment-footer";
@@ -184,6 +171,43 @@ function renderComment(s) {
   footer.appendChild(who);
   li.appendChild(footer);
   return li;
+}
+
+/** Only show Show more when line-clamp actually truncates the rendered text. */
+function wireCommentExpand(li) {
+  const quote = li.querySelector(".comment-body");
+  if (!quote) return;
+
+  quote.classList.add("is-clamped");
+  // Force layout so scrollHeight/clientHeight are meaningful
+  const overflows = quote.scrollHeight > quote.clientHeight + 2;
+  if (!overflows) {
+    quote.classList.remove("is-clamped");
+    return;
+  }
+
+  let expand = li.querySelector(".comment-expand");
+  if (!expand) {
+    expand = document.createElement("button");
+    expand.type = "button";
+    expand.className = "comment-expand";
+    expand.textContent = "Show more";
+    // Insert before the author footer
+    const footer = li.querySelector(".comment-footer");
+    if (footer) li.insertBefore(expand, footer);
+    else li.appendChild(expand);
+  }
+
+  expand.onclick = () => {
+    const willExpand = quote.classList.contains("is-clamped");
+    if (willExpand) {
+      quote.classList.remove("is-clamped");
+      expand.textContent = "Show less";
+    } else {
+      quote.classList.add("is-clamped");
+      expand.textContent = "Show more";
+    }
+  };
 }
 
 function showBannerFromQuery() {
@@ -367,6 +391,10 @@ async function loadComments() {
   }
   if (empty) empty.hidden = true;
   for (const s of comments) list?.appendChild(renderComment(s));
+  // Measure overflow after nodes are in the document
+  requestAnimationFrame(() => {
+    list?.querySelectorAll(":scope > li").forEach((li) => wireCommentExpand(li));
+  });
 }
 
 async function checkAuthMode() {
