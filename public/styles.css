@@ -557,7 +557,7 @@ textarea {
 
 .sig-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
 }
 
@@ -568,7 +568,7 @@ textarea {
 
 .sig-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
 }
@@ -597,50 +597,6 @@ textarea {
 .sig-comment-badge-icon {
   font-size: 0.85rem;
   line-height: 1;
-  margin-top: 0.1rem;
-}
-
-.sig-quote {
-  margin: 0.55rem 0 0;
-  padding: 0.45rem 0 0 0.65rem;
-  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
-  color: var(--text-body);
-  font-size: 0.86rem;
-  line-height: 1.45;
-  font-style: italic;
-  white-space: pre-wrap;
-}
-
-.sig-quote.is-clamped {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
-  white-space: normal;
-  font-style: italic;
-}
-
-.sig-quote-expand {
-  margin: 0.35rem 0 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--accent-soft);
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.sig-quote-expand:hover {
-  color: var(--accent);
-}
-
-/* Avatar stays aligned when quote expands */
-.signatory-list li.has-comment .avatar,
-.signatory-list li.has-comment .avatar-fallback {
   margin-top: 0.1rem;
 }
 

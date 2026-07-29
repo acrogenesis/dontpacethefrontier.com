@@ -129,7 +129,7 @@ function renderSignatory(s) {
   top.appendChild(textCol);
 
   if (hasComment) {
-    // Quote badge — jumps to the featured comments section
+    // Quote bubble only — full text lives in Community comments
     const badge = document.createElement("a");
     badge.className = "sig-comment-badge";
     badge.href = "#comments";
@@ -144,54 +144,9 @@ function renderSignatory(s) {
   }
 
   body.appendChild(top);
-
-  if (hasComment) {
-    const quote = document.createElement("p");
-    quote.className = "sig-quote";
-    appendText(quote, comment);
-    body.appendChild(quote);
-
-    // Expand only when the rail preview actually truncates
-    // (wired after mount via wireSigQuoteExpand)
-  }
-
   row.appendChild(body);
   li.appendChild(row);
   return li;
-}
-
-function wireSigQuoteExpand(li) {
-  if (!li.classList.contains("has-comment")) return;
-  const quote = li.querySelector(".sig-quote");
-  if (!quote) return;
-
-  quote.classList.add("is-clamped");
-  const overflows = quote.scrollHeight > quote.clientHeight + 2;
-  if (!overflows) {
-    // Short comments: still show the quote, no extra control
-    return;
-  }
-
-  let btn = li.querySelector(".sig-quote-expand");
-  if (!btn) {
-    btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "sig-quote-expand";
-    btn.textContent = "Show more";
-    quote.after(btn);
-  }
-  btn.onclick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const expanding = quote.classList.contains("is-clamped");
-    if (expanding) {
-      quote.classList.remove("is-clamped");
-      btn.textContent = "Show less";
-    } else {
-      quote.classList.add("is-clamped");
-      btn.textContent = "Show more";
-    }
-  };
 }
 
 function renderComment(s) {
@@ -428,14 +383,6 @@ async function loadSignatories(reset = false) {
       list?.appendChild(renderSignatory(s));
     }
     offset += batch.length;
-
-    // Clamp long quote previews after nodes are in the document
-    requestAnimationFrame(() => {
-      if (!list) return;
-      for (let i = prevCount; i < list.children.length; i++) {
-        wireSigQuoteExpand(list.children[i]);
-      }
-    });
 
     // If the API returned nothing new, treat the list as complete
     if (!reset && batch.length === 0) {
