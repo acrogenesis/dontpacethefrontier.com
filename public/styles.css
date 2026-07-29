@@ -416,14 +416,11 @@ h1 {
     min-height: 0;
   }
 
-  #signatories.rail-panel {
-    flex: 1.2 1 0;
+  /* Signatories fill the sticky rail (comments moved to primary column) */
+  #signatories.rail-panel-solo {
+    flex: 1 1 auto;
     min-height: 0;
-  }
-
-  #comments.rail-panel {
-    flex: 1 1 0;
-    min-height: 0;
+    height: 100%;
   }
 }
 
@@ -512,8 +509,7 @@ textarea {
 }
 
 /* ---------- Lists ---------- */
-.signatory-list,
-.comment-list {
+.signatory-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -534,15 +530,6 @@ textarea {
   background: var(--surface-hover);
 }
 
-/* Comment cards — quote style, inspired by PTF personal comments */
-.comment-list li {
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--accent);
-  border-radius: 8px;
-  padding: 0.9rem 1rem;
-  background: var(--surface-2);
-}
-
 .sig-name {
   font-weight: 600;
   margin: 0 0 0.15rem;
@@ -554,14 +541,6 @@ textarea {
   color: var(--muted);
   margin: 0;
   line-height: 1.4;
-}
-
-.comment-body {
-  margin: 0 0 0.65rem;
-  color: var(--text-body);
-  white-space: pre-wrap;
-  font-size: 0.95rem;
-  line-height: 1.5;
 }
 
 .sig-row {
@@ -588,6 +567,167 @@ textarea {
   font-size: 0.9rem;
   color: var(--accent-soft);
   background: var(--avatar-fallback-bg);
+}
+
+/* ---------- Community comments showcase (PTF-inspired) ---------- */
+.comments-section {
+  position: relative;
+}
+
+.comments-head {
+  margin-bottom: 1.25rem;
+}
+
+.comments-head .section-title {
+  margin-bottom: 0.35rem;
+  font-size: clamp(1.5rem, 3vw, 1.85rem);
+}
+
+.comments-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  max-width: 36rem;
+  line-height: 1.5;
+}
+
+.comment-showcase {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.15rem;
+  /* Timeline spine (PTF-like) */
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .comment-showcase {
+    gap: 1.35rem;
+    padding-left: 1.35rem;
+  }
+
+  .comment-showcase::before {
+    content: "";
+    position: absolute;
+    left: 0.35rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 2px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent) 55%, transparent),
+      color-mix(in srgb, var(--accent) 12%, transparent)
+    );
+    border-radius: 2px;
+  }
+}
+
+.comment-showcase > li {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.35rem 1.4rem 1.25rem;
+  background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+  box-shadow: var(--shadow-rail);
+  backdrop-filter: blur(6px);
+  transition:
+    border-color 0.2s,
+    transform 0.22s var(--ease-out, ease),
+    box-shadow 0.22s;
+}
+
+@media (min-width: 640px) {
+  .comment-showcase > li::before {
+    content: "";
+    position: absolute;
+    left: calc(-1.35rem + 0.35rem - 4px);
+    top: 1.55rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+}
+
+.comment-showcase > li:hover {
+  border-color: var(--surface-hover-border);
+  transform: translateY(-2px);
+  box-shadow:
+    var(--shadow-rail),
+    0 12px 32px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.comment-mark {
+  font-family: var(--display);
+  font-size: 2.6rem;
+  line-height: 0.8;
+  color: color-mix(in srgb, var(--accent) 70%, var(--muted));
+  margin: 0 0 0.55rem;
+  user-select: none;
+}
+
+.comment-body {
+  margin: 0;
+  color: var(--ink);
+  white-space: pre-wrap;
+  font-size: clamp(1.05rem, 2.2vw, 1.15rem);
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+}
+
+.comment-body.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.comment-expand {
+  margin: 0.55rem 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-soft);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.comment-expand:hover {
+  color: var(--accent);
+}
+
+.comment-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.15rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.comment-footer .avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.comment-footer .sig-name {
+  font-size: 1rem;
+}
+
+.comments-section .empty-state {
+  padding: 1.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  text-align: center;
+  background: var(--surface-2);
 }
 
 .company-chips {
@@ -716,7 +856,7 @@ footer p {
   padding: 0.1rem 0.35rem;
 }
 
-/* Mobile: stacked rail panels get generous scroll */
+/* Mobile: signatories rail gets a tall scroll region */
 @media (max-width: 959px) {
   .col-rail {
     display: flex;
@@ -724,12 +864,9 @@ footer p {
     gap: 1.5rem;
   }
 
-  .rail-scroll {
-    max-height: 50vh;
-  }
-
   #signatories .rail-scroll {
-    max-height: 55vh;
+    max-height: 60vh;
+    min-height: 16rem;
   }
 }
 

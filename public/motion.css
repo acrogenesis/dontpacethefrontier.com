@@ -328,6 +328,7 @@ html.motion-on .rail-panel:not(.is-in) {
 
 /* ---------- List items (signatories / comments) ---------- */
 .signatory-list li,
+.comment-showcase > li,
 .comment-list li {
   opacity: 0;
   transform: translateY(12px) scale(0.98);
@@ -353,17 +354,6 @@ html.motion-on .rail-panel:not(.is-in) {
 .signatory-list li:hover {
   transform: translateX(3px);
   box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 10%, transparent);
-}
-
-.comment-list li {
-  transition:
-    border-color 0.2s,
-    background 0.2s,
-    transform 0.22s var(--ease-out);
-}
-
-.comment-list li:hover {
-  transform: translateY(-2px);
 }
 
 .avatar {
@@ -457,6 +447,7 @@ footer.reveal.is-in {
   .reveal,
   .reveal-scale,
   .signatory-list li,
+  .comment-showcase > li,
   .comment-list li,
   .rail-panel,
   body::before,

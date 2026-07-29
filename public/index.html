@@ -60,8 +60,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=5" />
-    <link rel="stylesheet" href="/motion.css" />
+    <link rel="stylesheet" href="/styles.css?v=6" />
+    <link rel="stylesheet" href="/motion.css?v=2" />
 
     <script type="application/ld+json">
       {
@@ -112,8 +112,8 @@
       <nav class="nav" aria-label="Page sections">
         <a class="btn btn-primary" href="#sign">Sign with X</a>
         <a class="btn" href="#statement">Read</a>
-        <a class="btn" href="#signatories">Signatories</a>
         <a class="btn" href="#comments">Comments</a>
+        <a class="btn" href="#signatories">Signatories</a>
       </nav>
     </header>
 
@@ -205,6 +205,20 @@
           </div>
         </section>
 
+        <!-- Featured comments (PTF-style pull quotes), primary column -->
+        <section id="comments" class="reveal comments-section">
+          <div class="comments-head">
+            <h2 class="section-title">Community comments</h2>
+            <p class="comments-sub">
+              Voices from people who signed—why they want labs to ship.
+            </p>
+          </div>
+          <ul id="comment-list" class="comment-showcase"></ul>
+          <p id="no-comments" class="hint empty-state" hidden>
+            No comments yet — be the first when you sign.
+          </p>
+        </section>
+
         <section id="sign" class="reveal">
           <h2 class="section-title">Sign</h2>
           <div class="card reveal-scale">
@@ -260,9 +274,9 @@
         </section>
       </div>
 
-      <!-- Right: signatories + comments (showcase) -->
-      <aside class="col-rail" aria-label="Community responses">
-        <section id="signatories" class="rail-panel">
+      <!-- Right: signatories only (full-height sticky rail) -->
+      <aside class="col-rail" aria-label="Signatories">
+        <section id="signatories" class="rail-panel rail-panel-solo">
           <div class="rail-head">
             <h2 class="section-title">Signatories</h2>
             <p class="rail-count">
@@ -283,19 +297,6 @@
           >
             Show more
           </button>
-        </section>
-
-        <section id="comments" class="rail-panel">
-          <div class="rail-head">
-            <h2 class="section-title">Comments</h2>
-            <p class="rail-sub">From the community</p>
-          </div>
-          <div class="rail-scroll rail-scroll-comments">
-            <ul id="comment-list" class="comment-list"></ul>
-            <p id="no-comments" class="hint empty-state" hidden>
-              No comments yet — be the first.
-            </p>
-          </div>
         </section>
       </aside>
     </main>
@@ -327,6 +328,6 @@
 
     <script src="/theme.js" defer></script>
     <script src="/motion.js" defer></script>
-    <script src="/app.js?v=6" type="module"></script>
+    <script src="/app.js?v=7" type="module"></script>
   </body>
 </html>

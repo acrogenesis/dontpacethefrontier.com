@@ -119,22 +119,70 @@ function renderSignatory(s) {
   return li;
 }
 
+const COMMENT_CLAMP_CHARS = 320;
+
 function renderComment(s) {
   const li = document.createElement("li");
   li.style.setProperty("--item-delay", nextItemDelay());
+
+  const mark = document.createElement("div");
+  mark.className = "comment-mark";
+  mark.setAttribute("aria-hidden", "true");
+  mark.textContent = "“";
+  li.appendChild(mark);
+
+  const text = (s.comment || "").trim();
   const quote = document.createElement("p");
   quote.className = "comment-body";
-  appendText(quote, `“${s.comment || ""}”`);
+  appendText(quote, text);
+  li.appendChild(quote);
+
+  if (text.length > COMMENT_CLAMP_CHARS) {
+    quote.classList.add("is-clamped");
+    const expand = document.createElement("button");
+    expand.type = "button";
+    expand.className = "comment-expand";
+    expand.textContent = "Show more";
+    expand.addEventListener("click", () => {
+      const open = quote.classList.toggle("is-clamped");
+      // toggle returns new state: true if class present (clamped)
+      expand.textContent = open ? "Show more" : "Show less";
+    });
+    li.appendChild(expand);
+  }
+
+  const footer = document.createElement("div");
+  footer.className = "comment-footer";
+
+  if (s.avatarUrl && isSafeAvatarUrl(s.avatarUrl)) {
+    const img = document.createElement("img");
+    img.className = "avatar";
+    img.src = s.avatarUrl;
+    img.alt = "";
+    img.width = 40;
+    img.height = 40;
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    footer.appendChild(img);
+  } else {
+    const fallback = document.createElement("div");
+    fallback.className = "avatar avatar-fallback";
+    fallback.setAttribute("aria-hidden", "true");
+    appendText(fallback, (s.name || "?")[0] || "?");
+    footer.appendChild(fallback);
+  }
+
+  const who = document.createElement("div");
   const name = document.createElement("p");
   name.className = "sig-name";
-  name.style.marginTop = "0.65rem";
   appendText(name, s.name || "Signer");
   const meta = document.createElement("p");
   meta.className = "sig-meta";
   meta.appendChild(metaBits(s));
-  li.appendChild(quote);
-  li.appendChild(name);
-  li.appendChild(meta);
+  who.appendChild(name);
+  who.appendChild(meta);
+  footer.appendChild(who);
+  li.appendChild(footer);
   return li;
 }
 
@@ -309,14 +357,16 @@ async function loadComments() {
   const res = await fetch("/api/comments?limit=40");
   const data = await res.json();
   const list = $("#comment-list");
-  list.replaceChildren();
+  list?.replaceChildren();
+  listAnimSeq = 0;
   const comments = data.comments || [];
+  const empty = $("#no-comments");
   if (!comments.length) {
-    $("#no-comments").hidden = false;
+    if (empty) empty.hidden = false;
     return;
   }
-  $("#no-comments").hidden = true;
-  for (const s of comments) list.appendChild(renderComment(s));
+  if (empty) empty.hidden = true;
+  for (const s of comments) list?.appendChild(renderComment(s));
 }
 
 async function checkAuthMode() {
