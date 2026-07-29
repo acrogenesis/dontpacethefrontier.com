@@ -251,6 +251,14 @@ h1 {
   min-width: 11rem;
 }
 
+.btn-share {
+  gap: 0.45rem;
+}
+
+.btn-share .x-logo {
+  font-size: 1.05rem;
+}
+
 .btn-row {
   display: flex;
   flex-wrap: wrap;

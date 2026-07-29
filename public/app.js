@@ -494,6 +494,27 @@ async function checkAuthMode() {
   }
 }
 
+const SHARE_URL = "https://dontpacethefrontier.com/";
+
+function buildXShareUrl() {
+  // No live count in the tweet — avoids "0 people" before stats load
+  // and keeps the share copy stable.
+  const text =
+    "Don't Pace the Frontier — a statement from the people against pacing the frontier: ship the best models fast, price them fairly, and stop the fearmongering.\n\n" +
+    SHARE_URL;
+  return `https://x.com/intent/post?text=${encodeURIComponent(text)}`;
+}
+
+function shareOnX() {
+  const url = buildXShareUrl();
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+$("#share-x")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  shareOnX();
+});
+
 $("#load-more")?.addEventListener("click", (e) => {
   e.preventDefault();
   e.stopPropagation();
