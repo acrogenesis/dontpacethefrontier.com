@@ -1,0 +1,40 @@
+name = "dontpacethefrontier"
+main = "src/index.ts"
+# Keep in range of installed workerd (avoids vitest fallback warnings)
+compatibility_date = "2026-03-10"
+compatibility_flags = ["nodejs_compat"]
+
+# Worker runs first (needed for www → apex 301 on every path), then Assets for static
+assets = { directory = "./public", binding = "ASSETS", run_worker_first = true }
+
+# Custom domains (zone must be on this Cloudflare account)
+# www stays attached so it hits the Worker and 301s to apex
+routes = [
+  { pattern = "dontpacethefrontier.com", custom_domain = true },
+  { pattern = "www.dontpacethefrontier.com", custom_domain = true },
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dontpacethefrontier"
+database_id = "89101f7a-3045-4f04-8102-93e3e58cda2c"
+migrations_dir = "migrations"
+
+[vars]
+APP_NAME = "Don't Pace the Frontier"
+APP_URL = "https://dontpacethefrontier.com"
+X_DEV_MOCK = "0"
+
+# Secrets (set via wrangler secret put — never commit):
+#   X_CLIENT_ID
+#   X_CLIENT_SECRET
+#
+# X Developer Portal → User authentication → OAuth 2.0
+# Callback URLs:
+#   http://localhost:8787/api/auth/x/callback
+#   https://dontpacethefrontier.com/api/auth/x/callback
+#   https://www.dontpacethefrontier.com/api/auth/x/callback  (if using www)
+# Scopes: tweet.read users.read (no offline.access)
+
+[observability]
+enabled = true

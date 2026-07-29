@@ -1,0 +1,6 @@
+# Copy to .dev.vars for local development (never commit .dev.vars)
+# Used by: wrangler types --env-file .dev.vars.example
+X_CLIENT_ID=
+X_CLIENT_SECRET=
+X_DEV_MOCK=0
+APP_URL=http://localhost:8787

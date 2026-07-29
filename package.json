@@ -1,0 +1,30 @@
+{
+  "name": "dontpacethefrontier",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Community petition: Don't Pace the Frontier",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 migrations apply dontpacethefrontier --local",
+    "db:remote": "wrangler d1 migrations apply dontpacethefrontier --remote",
+    "db:create": "wrangler d1 create dontpacethefrontier",
+    "tail": "wrangler tail",
+    "test": "vitest run --maxWorkers=1",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types --env-file .dev.vars.example",
+    "cf-typegen:check": "wrangler types --env-file .dev.vars.example --check",
+    "check": "npm run cf-typegen:check && npm run typecheck && npm test && wrangler deploy --dry-run"
+  },
+  "dependencies": {
+    "hono": "^4.12.32"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.19.0",
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.115.0"
+  }
+}
