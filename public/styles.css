@@ -711,6 +711,24 @@ textarea {
     0 12px 32px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
+/* Flash when jumping from a signatory quote bubble */
+.comment-showcase > li.is-flash {
+  animation: comment-flash 1.4s ease;
+}
+
+@keyframes comment-flash {
+  0% {
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent),
+      var(--shadow-rail);
+  }
+  100% {
+    border-color: var(--line);
+    box-shadow: var(--shadow-rail);
+  }
+}
+
 .comment-mark {
   font-family: var(--display);
   font-size: 2.6rem;

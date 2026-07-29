@@ -81,6 +81,37 @@ function nextItemDelay() {
   return `${d}ms`;
 }
 
+/** Safe fragment id for a signatory's featured comment card. */
+function commentAnchorId(id) {
+  if (id == null) return null;
+  const s = String(id);
+  if (!/^[A-Za-z0-9_-]{1,80}$/.test(s)) return null;
+  return `comment-${s}`;
+}
+
+function scrollToComment(id) {
+  const anchor = commentAnchorId(id);
+  if (!anchor) return false;
+  const el = document.getElementById(anchor);
+  if (!el) return false;
+
+  // Expand if clamped so the full comment is visible
+  if (el.querySelector(".comment-body.is-clamped")) {
+    const expand = el.querySelector(".comment-expand");
+    if (expand) expand.click();
+  }
+
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("is-flash");
+  void el.offsetWidth;
+  el.classList.add("is-flash");
+  window.setTimeout(() => el.classList.remove("is-flash"), 1600);
+
+  // Keep URL hash in sync without jumping again
+  history.replaceState(null, "", `#${anchor}`);
+  return true;
+}
+
 function renderSignatory(s) {
   const li = document.createElement("li");
   li.style.setProperty("--item-delay", nextItemDelay());
@@ -129,12 +160,24 @@ function renderSignatory(s) {
   top.appendChild(textCol);
 
   if (hasComment) {
-    // Quote bubble only — full text lives in Community comments
+    const anchor = commentAnchorId(s.id);
     const badge = document.createElement("a");
     badge.className = "sig-comment-badge";
-    badge.href = "#comments";
+    badge.href = anchor ? `#${anchor}` : "#comments";
     badge.title = "View comment";
     badge.setAttribute("aria-label", `View comment from ${s.name || "signer"}`);
+    if (anchor && s.id) {
+      badge.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (!scrollToComment(s.id)) {
+          // Comments not mounted yet — fall back to section
+          document.getElementById("comments")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      });
+    }
     const icon = document.createElement("span");
     icon.className = "sig-comment-badge-icon";
     icon.setAttribute("aria-hidden", "true");
@@ -152,6 +195,9 @@ function renderSignatory(s) {
 function renderComment(s) {
   const li = document.createElement("li");
   li.style.setProperty("--item-delay", nextItemDelay());
+  const anchor = commentAnchorId(s.id);
+  if (anchor) li.id = anchor;
+  if (s.id) li.dataset.sigId = String(s.id);
 
   const mark = document.createElement("div");
   mark.className = "comment-mark";
@@ -424,6 +470,12 @@ async function loadComments() {
   // Measure overflow after nodes are in the document
   requestAnimationFrame(() => {
     list?.querySelectorAll(":scope > li").forEach((li) => wireCommentExpand(li));
+    // Deep-link: #comment-<id> after async load
+    const hash = location.hash.slice(1);
+    if (hash.startsWith("comment-")) {
+      const id = hash.slice("comment-".length);
+      scrollToComment(id);
+    }
   });
 }
 
