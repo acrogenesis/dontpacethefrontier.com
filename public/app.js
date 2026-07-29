@@ -429,6 +429,14 @@ async function loadSignatories(reset = false) {
     }
     offset += batch.length;
 
+    // Clamp long quote previews after nodes are in the document
+    requestAnimationFrame(() => {
+      if (!list) return;
+      for (let i = prevCount; i < list.children.length; i++) {
+        wireSigQuoteExpand(list.children[i]);
+      }
+    });
+
     // If the API returned nothing new, treat the list as complete
     if (!reset && batch.length === 0) {
       offset = Math.max(offset, total);
