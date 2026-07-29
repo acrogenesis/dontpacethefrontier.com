@@ -6,6 +6,11 @@ import {
   shouldAcceptMockAuth,
   FLOW_COOKIE,
 } from "../src/security";
+import {
+  affiliationUserIds,
+  companyFromAffiliation,
+  parseAuthIntent,
+} from "../src/x-oauth";
 
 describe("clampInt", () => {
   it("rejects negative limit bypass and non-integers", () => {
@@ -46,5 +51,52 @@ describe("mock auth policy", () => {
 describe("flow cookie", () => {
   it("uses a namespaced cookie name", () => {
     expect(FLOW_COOKIE.startsWith("dptf_")).toBe(true);
+  });
+});
+
+describe("parseAuthIntent", () => {
+  it("only accepts edit when explicitly requested", () => {
+    expect(parseAuthIntent("edit")).toBe("edit");
+    expect(parseAuthIntent("sign")).toBe("sign");
+    expect(parseAuthIntent("DELETE")).toBe("sign");
+    expect(parseAuthIntent(undefined)).toBe("sign");
+  });
+});
+
+describe("companyFromAffiliation", () => {
+  it("returns null when there is no affiliation", () => {
+    expect(companyFromAffiliation(null)).toEqual({
+      company: null,
+      companyHandle: null,
+    });
+    expect(companyFromAffiliation(undefined, [])).toEqual({
+      company: null,
+      companyHandle: null,
+    });
+  });
+
+  it("uses expanded org account name and handle", () => {
+    expect(
+      companyFromAffiliation(
+        { user_id: ["123"], description: "fallback" },
+        [{ id: "123", name: "OpenAI", username: "OpenAI" }],
+      ),
+    ).toEqual({ company: "OpenAI", companyHandle: "OpenAI" });
+  });
+
+  it("accepts legacy single user_id string", () => {
+    expect(affiliationUserIds("99")).toEqual(["99"]);
+    expect(
+      companyFromAffiliation(
+        { user_id: "99" },
+        [{ id: "99", name: "xAI", username: "xai" }],
+      ),
+    ).toEqual({ company: "xAI", companyHandle: "xai" });
+  });
+
+  it("falls back to affiliation description", () => {
+    expect(
+      companyFromAffiliation({ description: "  Anthropic  ", user_id: [] }),
+    ).toEqual({ company: "Anthropic", companyHandle: null });
   });
 });

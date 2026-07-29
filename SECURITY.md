@@ -20,7 +20,8 @@ We will acknowledge reports when we can and aim to ship fixes for critical issue
 
 ## Scope notes
 
-- Signatures are public by design (name, handle, optional company/comment).
+- Signatures are public by design (name, handle, X affiliation company if any, optional title/comment).
+- Company is never free-text: only X profile `affiliation` (org badge) is stored.
 - Authentication is via X OAuth 2.0 with PKCE.
 - Mock OAuth is only for local development (`X_DEV_MOCK=1`) and must never be enabled in production.
 

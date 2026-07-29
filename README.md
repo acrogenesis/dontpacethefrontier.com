@@ -12,10 +12,10 @@ Community counter-statement to [Pacing the Frontier](https://www.pacingthefronti
 | Friction | One tap for people already on X | Check inbox |
 | Viral loop | Handle + avatar on the wall | Anonymous unless named |
 | Fake accounts | Possible but higher cost | Disposable emails easy |
-| Company proof | Self-reported only | Strong with corporate domains |
+| Company proof | X profile affiliation (org badge), not free text | Strong with corporate domains |
 | Fit | **Community petition** | Employee-only letter |
 
-Company/title are optional self-reported fields. Identity = verified X user id.
+Company is taken from the signer’s X **affiliation** (linked org account badge), not free text. Title/comment are optional and self-reported. Identity = verified X user id.
 
 ## Local dev
 
@@ -97,10 +97,10 @@ Attach custom domain **dontpacethefrontier.com** in Workers → Domains & Routes
 
 ## Auth flow
 
-1. User optionally fills company / title / comment.
+1. User optionally fills title / comment.
 2. `POST /api/auth/x/start` stores draft + PKCE verifier + browser flow id (HttpOnly cookie), returns X authorize URL.
 3. User approves on X → `GET /api/auth/x/callback` (cookie must match).
-4. We exchange code, fetch `/2/users/me`, insert signatory (unique on `x_user_id`).
+4. We exchange code, fetch `/2/users/me` (with `affiliation` + expansion), store company from X org badge if any, insert signatory (unique on `x_user_id`).
 5. Redirect home with `?sign=ok`.
 
 ## API
@@ -111,7 +111,7 @@ Attach custom domain **dontpacethefrontier.com** in Workers → Domains & Routes
 | GET | `/api/stats` | Totals + company breakdown |
 | GET | `/api/signatories` | Paginated public list |
 | GET | `/api/comments` | Signatures with comments |
-| POST | `/api/auth/x/start` | Begin OAuth (`{ company, title, comment }`) |
+| POST | `/api/auth/x/start` | Begin OAuth (`{ title, comment, intent? }`); company from X affiliation at callback |
 | GET | `/api/auth/x/callback` | X redirect target |
 
 We never store email. Public API never exposes `x_user_id`.

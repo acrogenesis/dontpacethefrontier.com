@@ -4,6 +4,7 @@ import {
   exchangeCodeForUser,
   loadAndConsumeState,
   mockEnabled,
+  parseAuthIntent,
   startXAuth,
 } from "./x-oauth";
 import {
@@ -149,7 +150,10 @@ app.get("/api/dev/status", (c) => {
 
 /**
  * Start X OAuth (POST only). Sets browser-bound flow cookie.
- * Draft fields optional: company, title, comment.
+ * Body: { title?, comment?, intent?: "sign" | "edit" }
+ * Company is never taken from the client — only from X profile affiliation at callback.
+ * - sign: create a new signature (default)
+ * - edit: update an existing signature after re-auth (must already be signed)
  */
 app.post("/api/auth/x/start", async (c) => {
   try {
@@ -175,19 +179,20 @@ app.post("/api/auth/x/start", async (c) => {
   }
 
   const draft = {
-    company: cleanText(body.company, 120),
     title: cleanText(body.title, 160),
     comment: cleanText(body.comment, 2000),
   };
+  const intent = parseAuthIntent(body.intent);
 
   try {
     const { redirectUrl, flowId } = await startXAuth(
       c.env,
       c.req.url,
       draft,
+      intent,
     );
     // Explicit Response so Set-Cookie is preserved through security header wrap
-    return new Response(JSON.stringify({ ok: true, redirectUrl }), {
+    return new Response(JSON.stringify({ ok: true, redirectUrl, intent }), {
       status: 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
@@ -198,7 +203,6 @@ app.post("/api/auth/x/start", async (c) => {
     console.error("oauth start failed", e instanceof Error ? e.name : "error");
     const message =
       e instanceof Error ? e.message : "Could not start X sign-in";
-    // Don't leak internal config errors in production wording beyond message
     return c.json({ error: message }, 500);
   }
 });
@@ -280,11 +284,44 @@ app.get("/api/auth/x/callback", async (c) => {
     );
   }
 
+  const intent = row.intent === "edit" ? "edit" : "sign";
   const existing = await c.env.DB.prepare(
     "SELECT id FROM signatories WHERE x_user_id = ?",
   )
     .bind(user.id)
-    .first();
+    .first<{ id: string }>();
+
+  if (intent === "edit") {
+    if (!existing) {
+      return redirect(
+        `/?sign=error&message=${encodeURIComponent("No signature found for this X account. Sign first.")}`,
+      );
+    }
+    // Only the re-authenticated X user can update their row.
+    // Company always comes from X affiliation on this re-auth (not client input).
+    await c.env.DB.prepare(
+      `UPDATE signatories SET
+         x_handle = ?,
+         name = ?,
+         avatar_url = ?,
+         company = ?,
+         title = ?,
+         comment = ?,
+         updated_at = datetime('now')
+       WHERE x_user_id = ?`,
+    )
+      .bind(
+        user.username,
+        user.name,
+        user.avatarUrl,
+        user.company,
+        row.title,
+        row.comment,
+        user.id,
+      )
+      .run();
+    return redirect("/?sign=updated");
+  }
 
   if (existing) {
     return redirect("/?sign=already");
@@ -302,7 +339,7 @@ app.get("/api/auth/x/callback", async (c) => {
       user.username,
       user.name,
       user.avatarUrl,
-      row.company,
+      user.company,
       row.title,
       row.comment,
     )

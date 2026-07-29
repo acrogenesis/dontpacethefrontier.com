@@ -1,8 +1,27 @@
-const PAGE_SIZE = 40;
+// Load a large first page so small petitions show everyone at once.
+// "Show more" only appears once total exceeds this (API max is 200).
+const PAGE_SIZE = 50;
 let offset = 0;
 let total = 0;
+let loadingMore = false;
 
 const $ = (sel) => document.querySelector(sel);
+
+function updateLoadMoreButton() {
+  const btn = $("#load-more");
+  if (!btn) return;
+  const hasMore = offset < total;
+  // Class-based visibility: .btn { display } overrides the UA [hidden] rule
+  btn.hidden = !hasMore;
+  btn.classList.toggle("is-shown", hasMore);
+  btn.disabled = loadingMore || !hasMore;
+  btn.setAttribute("aria-hidden", hasMore ? "false" : "true");
+  btn.textContent = loadingMore
+    ? "Loading…"
+    : hasMore
+      ? `Show more (${Math.min(PAGE_SIZE, total - offset)} remaining)`
+      : "Show more";
+}
 
 function isSafeXHandle(h) {
   return typeof h === "string" && /^[A-Za-z0-9_]{1,15}$/.test(h);
@@ -53,8 +72,18 @@ function metaBits(s) {
   return frag;
 }
 
+let listAnimSeq = 0;
+
+function nextItemDelay() {
+  // Stagger batches without unbounded delay growth
+  const d = (listAnimSeq % 8) * 45;
+  listAnimSeq += 1;
+  return `${d}ms`;
+}
+
 function renderSignatory(s) {
   const li = document.createElement("li");
+  li.style.setProperty("--item-delay", nextItemDelay());
   const row = document.createElement("div");
   row.className = "sig-row";
 
@@ -92,6 +121,7 @@ function renderSignatory(s) {
 
 function renderComment(s) {
   const li = document.createElement("li");
+  li.style.setProperty("--item-delay", nextItemDelay());
   const quote = document.createElement("p");
   quote.className = "comment-body";
   appendText(quote, `“${s.comment || ""}”`);
@@ -118,15 +148,81 @@ function showBannerFromQuery() {
     banner.className = "narrow banner ok";
     banner.textContent =
       "You're on the list. Thanks for signing with X!";
+  } else if (sign === "updated") {
+    banner.className = "narrow banner ok";
+    banner.textContent = "Your signature was updated. Thanks!";
   } else if (sign === "already") {
     banner.className = "narrow banner ok";
-    banner.textContent = "This X account already signed. Thank you!";
+    banner.textContent =
+      "This X account already signed. Use “Update my signature” to change title or comment (company refreshes from your X affiliation).";
   } else if (sign === "error") {
     banner.className = "narrow banner err";
     banner.textContent =
       params.get("message") || "Something went wrong. Please try again.";
   }
   history.replaceState({}, "", location.pathname + location.hash);
+}
+
+function setXButtonLabel(btn, label) {
+  btn.replaceChildren();
+  const logo = document.createElement("span");
+  logo.className = "x-logo";
+  logo.setAttribute("aria-hidden", "true");
+  logo.textContent = "𝕏";
+  btn.appendChild(logo);
+  btn.appendChild(document.createTextNode(` ${label}`));
+}
+
+async function startOAuth(intent) {
+  const status = $("#form-status");
+  const submitBtn = $("#submit-btn");
+  const editBtn = $("#edit-btn");
+  const active =
+    intent === "edit" ? editBtn : submitBtn;
+  const idleLabel = intent === "edit" ? "Update my signature" : "Sign with X";
+
+  status.className = "form-status";
+  status.textContent = "";
+  submitBtn.disabled = true;
+  if (editBtn) editBtn.disabled = true;
+  if (active) active.textContent = "Redirecting to X…";
+
+  const payload = {
+    title: $("#title").value,
+    comment: $("#comment").value,
+    intent: intent === "edit" ? "edit" : "sign",
+  };
+
+  try {
+    const res = await fetch("/api/auth/x/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.redirectUrl) {
+      status.className = "form-status show err";
+      status.textContent =
+        data.error ||
+        (intent === "edit"
+          ? "Could not start update."
+          : "Could not start X sign-in.");
+      submitBtn.disabled = false;
+      if (editBtn) editBtn.disabled = false;
+      setXButtonLabel(submitBtn, "Sign with X");
+      if (editBtn) setXButtonLabel(editBtn, "Update my signature");
+      return;
+    }
+    location.href = data.redirectUrl;
+  } catch {
+    status.className = "form-status show err";
+    status.textContent = "Network error. Try again.";
+    submitBtn.disabled = false;
+    if (editBtn) editBtn.disabled = false;
+    setXButtonLabel(submitBtn, "Sign with X");
+    if (editBtn) setXButtonLabel(editBtn, "Update my signature");
+  }
 }
 
 async function loadStats() {
@@ -150,24 +246,63 @@ async function loadStats() {
 }
 
 async function loadSignatories(reset = false) {
-  if (reset) {
-    offset = 0;
-    $("#signatory-list").replaceChildren();
+  if (loadingMore) return;
+  if (!reset && offset >= total && total > 0) {
+    updateLoadMoreButton();
+    return;
   }
-  const res = await fetch(
-    `/api/signatories?limit=${PAGE_SIZE}&offset=${offset}`,
-  );
-  const data = await res.json();
-  total = data.total || 0;
-  $("#total-count").textContent = total.toLocaleString();
-  $("#hero-count").textContent = total.toLocaleString();
+
+  loadingMore = true;
+  updateLoadMoreButton();
 
   const list = $("#signatory-list");
-  for (const s of data.signatories || []) {
-    list.appendChild(renderSignatory(s));
+  const prevCount = list ? list.children.length : 0;
+
+  try {
+    if (reset) {
+      offset = 0;
+      listAnimSeq = 0;
+      list?.replaceChildren();
+    }
+
+    const res = await fetch(
+      `/api/signatories?limit=${PAGE_SIZE}&offset=${offset}`,
+    );
+    if (!res.ok) throw new Error("Failed to load signatories");
+    const data = await res.json();
+    total = Number(data.total) || 0;
+    const totalEl = $("#total-count");
+    const heroEl = $("#hero-count");
+    if (totalEl) totalEl.textContent = total.toLocaleString();
+    if (heroEl) heroEl.textContent = total.toLocaleString();
+
+    const batch = Array.isArray(data.signatories) ? data.signatories : [];
+    for (const s of batch) {
+      list?.appendChild(renderSignatory(s));
+    }
+    offset += batch.length;
+
+    // If the API returned nothing new, treat the list as complete
+    if (!reset && batch.length === 0) {
+      offset = Math.max(offset, total);
+    }
+
+    // Scroll newly appended items into view when loading more
+    if (!reset && batch.length && list) {
+      const scroll = document.querySelector("#signatories .rail-scroll");
+      const firstNew = list.children[prevCount];
+      if (firstNew && typeof firstNew.scrollIntoView === "function") {
+        firstNew.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      } else if (scroll) {
+        scroll.scrollTo({ top: scroll.scrollHeight, behavior: "smooth" });
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    loadingMore = false;
+    updateLoadMoreButton();
   }
-  offset += (data.signatories || []).length;
-  $("#load-more").hidden = offset >= total;
 }
 
 async function loadComments() {
@@ -186,67 +321,33 @@ async function loadComments() {
 
 async function checkAuthMode() {
   try {
-    // Only available when X_DEV_MOCK=1
+    // Only available when X_DEV_MOCK=1 (404 in production is expected)
     const res = await fetch("/api/dev/status");
     if (!res.ok) return;
     const data = await res.json();
-    if (data.mockAuth) $("#mock-note").hidden = false;
+    if (data.mockAuth) {
+      const note = $("#mock-note");
+      if (note) note.hidden = false;
+    }
   } catch {
     /* ignore */
   }
 }
 
-$("#load-more")?.addEventListener("click", () => loadSignatories(false));
-
-$("#sign-form")?.addEventListener("submit", async (e) => {
+$("#load-more")?.addEventListener("click", (e) => {
   e.preventDefault();
-  const status = $("#form-status");
-  const btn = $("#submit-btn");
-  status.className = "form-status";
-  status.textContent = "";
-  btn.disabled = true;
-  btn.textContent = "Redirecting to X…";
+  e.stopPropagation();
+  if (loadingMore) return;
+  loadSignatories(false);
+});
 
-  const payload = {
-    company: $("#company").value,
-    title: $("#title").value,
-    comment: $("#comment").value,
-  };
+$("#sign-form")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  startOAuth("sign");
+});
 
-  try {
-    const res = await fetch("/api/auth/x/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.redirectUrl) {
-      status.className = "form-status show err";
-      status.textContent = data.error || "Could not start X sign-in.";
-      btn.disabled = false;
-      btn.replaceChildren();
-      const logo = document.createElement("span");
-      logo.className = "x-logo";
-      logo.setAttribute("aria-hidden", "true");
-      logo.textContent = "𝕏";
-      btn.appendChild(logo);
-      btn.appendChild(document.createTextNode(" Sign with X"));
-      return;
-    }
-    location.href = data.redirectUrl;
-  } catch {
-    status.className = "form-status show err";
-    status.textContent = "Network error. Try again.";
-    btn.disabled = false;
-    btn.replaceChildren();
-    const logo = document.createElement("span");
-    logo.className = "x-logo";
-    logo.setAttribute("aria-hidden", "true");
-    logo.textContent = "𝕏";
-    btn.appendChild(logo);
-    btn.appendChild(document.createTextNode(" Sign with X"));
-  }
+$("#edit-btn")?.addEventListener("click", () => {
+  startOAuth("edit");
 });
 
 showBannerFromQuery();

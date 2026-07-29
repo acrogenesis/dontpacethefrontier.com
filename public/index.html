@@ -15,6 +15,7 @@
     <meta name="author" content="Don't Pace the Frontier community" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="theme-color" content="#0b0c10" />
+    <script src="/theme-boot.js"></script>
     <link rel="canonical" href="https://dontpacethefrontier.com/" />
 
     <!-- Open Graph -->
@@ -59,7 +60,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=5" />
+    <link rel="stylesheet" href="/motion.css" />
 
     <script type="application/ld+json">
       {
@@ -91,10 +93,14 @@
         }
       }
     </script>
-    <!-- seo-v2 -->
   </head>
   <body>
     <div class="speed-lines" aria-hidden="true"></div>
+
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Color theme">
+      <span class="theme-icon" aria-hidden="true">◐</span>
+      <span class="theme-label">System</span>
+    </button>
 
     <header class="hero wrap">
       <div class="badge">Community statement · 2026</div>
@@ -103,20 +109,22 @@
         A statement from <strong id="hero-count">…</strong> people who want the
         best models fast, at reasonable prices—and the fearmongering to stop.
       </p>
-      <nav class="nav">
+      <nav class="nav" aria-label="Page sections">
         <a class="btn btn-primary" href="#sign">Sign with X</a>
         <a class="btn" href="#statement">Read</a>
         <a class="btn" href="#signatories">Signatories</a>
+        <a class="btn" href="#comments">Comments</a>
       </nav>
     </header>
 
-    <main>
-      <div id="banner" class="narrow banner" hidden role="status"></div>
+    <div id="banner" class="wrap banner" hidden role="status"></div>
 
-      <section id="statement">
-        <div class="narrow">
+    <main class="wrap layout-grid">
+      <!-- Left: statement + sign -->
+      <div class="col-primary">
+        <section id="statement" class="reveal">
           <h2 class="section-title">Statement</h2>
-          <div class="card statement">
+          <div class="card statement reveal-scale">
             <p>
               AI could help create a dramatically better future. That future
               arrives faster when labs compete hard, ship often, and put capable
@@ -157,7 +165,7 @@
               exists so that side is counted.
             </p>
             <ul class="pillars">
-              <li>
+              <li class="reveal-scale" style="--reveal-delay: 40ms">
                 <div>
                   <strong>Ship fast</strong>
                   <div>
@@ -166,7 +174,7 @@
                   </div>
                 </div>
               </li>
-              <li>
+              <li class="reveal-scale" style="--reveal-delay: 100ms">
                 <div>
                   <strong>Price fairly</strong>
                   <div>
@@ -175,7 +183,7 @@
                   </div>
                 </div>
               </li>
-              <li>
+              <li class="reveal-scale" style="--reveal-delay: 160ms">
                 <div>
                   <strong>Stop fearmongering</strong>
                   <div>
@@ -184,7 +192,7 @@
                   </div>
                 </div>
               </li>
-              <li>
+              <li class="reveal-scale" style="--reveal-delay: 220ms">
                 <div>
                   <strong>Safety that scales</strong>
                   <div>
@@ -195,43 +203,28 @@
               </li>
             </ul>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="sign">
-        <div class="narrow">
+        <section id="sign" class="reveal">
           <h2 class="section-title">Sign</h2>
-          <div class="card">
+          <div class="card reveal-scale">
             <p class="hint" style="margin-top: 0; margin-bottom: 1.25rem">
-              Sign with your <strong>X</strong> account so we know you’re a real
-              person (one signature per account). Company and title are optional
-              and self-reported. Your email is never collected. X’s consent
-              screen may mention posts—we only use your profile (name, handle,
-              avatar) to list your signature.
+              Sign or update with your <strong>X</strong> account so only you can
+              change your row (we re-verify via OAuth). Company is taken from your
+              X profile affiliation when present (e.g. a badge linked to
+              @OpenAI)—not free text. Title and comment are optional. Your email
+              is never collected.
             </p>
             <form id="sign-form">
-              <div class="row-2">
-                <div class="field">
-                  <label for="company">Company / org (optional)</label>
-                  <input
-                    id="company"
-                    name="company"
-                    type="text"
-                    maxlength="120"
-                    autocomplete="organization"
-                    placeholder="OpenAI, Independent, student…"
-                  />
-                </div>
-                <div class="field">
-                  <label for="title">Title / role (optional)</label>
-                  <input
-                    id="title"
-                    name="title"
-                    type="text"
-                    maxlength="160"
-                    placeholder="Engineer, founder, researcher…"
-                  />
-                </div>
+              <div class="field">
+                <label for="title">Title / role (optional)</label>
+                <input
+                  id="title"
+                  name="title"
+                  type="text"
+                  maxlength="160"
+                  placeholder="Engineer, founder, researcher…"
+                />
               </div>
               <div class="field">
                 <label for="comment">Comment (optional, public)</label>
@@ -242,44 +235,73 @@
                   placeholder="Why you signed…"
                 ></textarea>
               </div>
-              <button class="btn btn-primary btn-x" type="submit" id="submit-btn">
-                <span class="x-logo" aria-hidden="true">𝕏</span>
-                Sign with X
-              </button>
+              <div class="btn-row">
+                <button class="btn btn-primary btn-x" type="submit" id="submit-btn" data-intent="sign">
+                  <span class="x-logo" aria-hidden="true">𝕏</span>
+                  Sign with X
+                </button>
+                <button class="btn btn-x" type="button" id="edit-btn" data-intent="edit">
+                  <span class="x-logo" aria-hidden="true">𝕏</span>
+                  Update my signature
+                </button>
+              </div>
+              <p class="hint" style="margin-top: 0.85rem">
+                Already signed? Change title or comment, then
+                <strong>Update my signature</strong>—you’ll authorize with X again
+                so no one else can edit your entry. Company refreshes from your X
+                affiliation on each update.
+              </p>
               <p id="mock-note" class="hint" hidden style="margin-top: 0.85rem">
-                Dev mode: X keys not set — clicking will simulate a mock X user.
+                Dev mode: mock X login is enabled.
               </p>
               <div id="form-status" class="form-status" role="status"></div>
             </form>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <section id="signatories">
-        <div class="narrow">
-          <h2 class="section-title">Signatories</h2>
-          <div class="meta-bar">
-            <div><strong id="total-count">0</strong> total</div>
-            <div id="company-summary" class="company-chips"></div>
+      <!-- Right: signatories + comments (showcase) -->
+      <aside class="col-rail" aria-label="Community responses">
+        <section id="signatories" class="rail-panel">
+          <div class="rail-head">
+            <h2 class="section-title">Signatories</h2>
+            <p class="rail-count">
+              <strong id="total-count">0</strong>
+              <span>total</span>
+            </p>
           </div>
-          <ul id="signatory-list" class="signatory-list"></ul>
-          <button id="load-more" class="btn load-more" type="button" hidden>
+          <div id="company-summary" class="company-chips"></div>
+          <div class="rail-scroll">
+            <ul id="signatory-list" class="signatory-list"></ul>
+          </div>
+          <button
+            id="load-more"
+            class="btn load-more"
+            type="button"
+            hidden
+            aria-hidden="true"
+          >
             Show more
           </button>
-        </div>
-      </section>
+        </section>
 
-      <section id="comments">
-        <div class="narrow">
-          <h2 class="section-title">Comments</h2>
-          <ul id="comment-list" class="comment-list"></ul>
-          <p id="no-comments" class="hint" hidden>No comments yet — be the first.</p>
-        </div>
-      </section>
+        <section id="comments" class="rail-panel">
+          <div class="rail-head">
+            <h2 class="section-title">Comments</h2>
+            <p class="rail-sub">From the community</p>
+          </div>
+          <div class="rail-scroll rail-scroll-comments">
+            <ul id="comment-list" class="comment-list"></ul>
+            <p id="no-comments" class="hint empty-state" hidden>
+              No comments yet — be the first.
+            </p>
+          </div>
+        </section>
+      </aside>
     </main>
 
-    <footer>
-      <div class="narrow">
+    <footer class="reveal">
+      <div class="wrap footer-inner">
         <p>
           Community statement. Signatures are personal and do not represent any
           company’s views. Identity verified via X OAuth.
@@ -303,6 +325,8 @@
       </div>
     </footer>
 
-    <script src="/app.js" type="module"></script>
+    <script src="/theme.js" defer></script>
+    <script src="/motion.js" defer></script>
+    <script src="/app.js?v=6" type="module"></script>
   </body>
 </html>

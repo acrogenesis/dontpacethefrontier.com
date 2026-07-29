@@ -75,6 +75,29 @@ describe("Worker security integration", () => {
     expect(res.status).toBe(404);
   });
 
+  it("accepts edit intent on oauth start without leaking secrets", async () => {
+    const res = await fetchWorker("/api/auth/x/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "http://localhost:8787",
+        "CF-Connecting-IP": "198.51.100.9",
+      },
+      body: JSON.stringify({
+        intent: "edit",
+        title: "Engineer",
+        comment: "Updated",
+      }),
+    });
+    // 200 mock redirect or 500 if OAuth not configured — never 404
+    expect([200, 500]).toContain(res.status);
+    if (res.status === 200) {
+      const body = (await res.json()) as { intent?: string; redirectUrl?: string };
+      expect(body.intent).toBe("edit");
+      expect(body.redirectUrl).toBeTruthy();
+    }
+  });
+
   it("rejects bodies larger than 8KB on oauth start", async () => {
     const big = "x".repeat(9_000);
     const res = await fetchWorker("/api/auth/x/start", {

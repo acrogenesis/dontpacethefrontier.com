@@ -242,7 +242,7 @@ export function securityHeaders(): Record<string, string> {
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
     "Content-Security-Policy": [
       "default-src 'self'",
-      "script-src 'self'",
+      "script-src 'self' https://static.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https://pbs.twimg.com https://abs.twimg.com https://*.twimg.com",

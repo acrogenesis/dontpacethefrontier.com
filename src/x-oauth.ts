@@ -4,21 +4,108 @@ import { mockEnabled as mockEnabledFromSecurity, sanitizeAvatarUrl } from "./sec
 
 const AUTH_URL = "https://twitter.com/i/oauth2/authorize";
 const TOKEN_URL = "https://api.twitter.com/2/oauth2/token";
+/** Affiliation is X's official org badge link (e.g. @sama → OpenAI). */
 const ME_URL =
-  "https://api.twitter.com/2/users/me?user.fields=profile_image_url,name,username";
+  "https://api.twitter.com/2/users/me?user.fields=profile_image_url,name,username,affiliation&expansions=affiliation.user_id";
 
 export type XUser = {
   id: string;
   username: string;
   name: string;
   avatarUrl: string | null;
+  /** From X profile affiliation (org account name), never free-text. */
+  company: string | null;
+  /** Affiliated org's @handle when available. */
+  companyHandle: string | null;
 };
 
 export type Draft = {
-  company: string | null;
   title: string | null;
   comment: string | null;
 };
+
+type AffiliationPayload = {
+  badge_url?: string;
+  description?: string;
+  url?: string;
+  /** Legacy single id or current array of org account ids */
+  user_id?: string | string[];
+};
+
+type MeUserPayload = {
+  id: string;
+  username: string;
+  name: string;
+  profile_image_url?: string;
+  affiliation?: AffiliationPayload | null;
+};
+
+type MeResponse = {
+  data?: MeUserPayload;
+  includes?: {
+    users?: Array<{
+      id: string;
+      name?: string;
+      username?: string;
+    }>;
+  };
+};
+
+/** Normalize affiliation.user_id (string | string[]) to id list. */
+export function affiliationUserIds(
+  userId: string | string[] | undefined | null,
+): string[] {
+  if (userId == null) return [];
+  if (Array.isArray(userId)) {
+    return userId.filter((id): id is string => typeof id === "string" && id.length > 0);
+  }
+  if (typeof userId === "string" && userId.length > 0) return [userId];
+  return [];
+}
+
+/**
+ * Resolve display company from X affiliation + expanded org users.
+ * Prefers the org account's profile name (e.g. "OpenAI"), then affiliation description.
+ */
+export function companyFromAffiliation(
+  affiliation: AffiliationPayload | null | undefined,
+  includesUsers: Array<{ id: string; name?: string; username?: string }> = [],
+): { company: string | null; companyHandle: string | null } {
+  if (!affiliation) return { company: null, companyHandle: null };
+
+  const ids = affiliationUserIds(affiliation.user_id);
+  for (const id of ids) {
+    const org = includesUsers.find((u) => u.id === id);
+    if (!org) continue;
+    const name = typeof org.name === "string" ? org.name.trim() : "";
+    if (name) {
+      return {
+        company: name.slice(0, 120),
+        companyHandle:
+          typeof org.username === "string" && org.username
+            ? org.username.slice(0, 15)
+            : null,
+      };
+    }
+  }
+
+  const desc =
+    typeof affiliation.description === "string"
+      ? affiliation.description.trim()
+      : "";
+  if (desc) {
+    return { company: desc.slice(0, 120), companyHandle: null };
+  }
+
+  return { company: null, companyHandle: null };
+}
+
+/** sign = create new; edit = update existing after re-auth with X */
+export type AuthIntent = "sign" | "edit";
+
+export function parseAuthIntent(raw: unknown): AuthIntent {
+  return raw === "edit" ? "edit" : "sign";
+}
 
 function appOrigin(env: Env, requestUrl: string): string {
   return (env.APP_URL || new URL(requestUrl).origin).replace(/\/$/, "");
@@ -47,6 +134,7 @@ export async function startXAuth(
   env: Env,
   requestUrl: string,
   draft: Draft,
+  intent: AuthIntent = "sign",
 ): Promise<StartResult> {
   const useMock = mockEnabled(env);
 
@@ -60,6 +148,7 @@ export async function startXAuth(
   const flowId = randomToken(24);
   const codeVerifier = pkceVerifier();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  const safeIntent: AuthIntent = intent === "edit" ? "edit" : "sign";
 
   await env.DB.prepare(
     "DELETE FROM oauth_states WHERE expires_at < datetime('now')",
@@ -67,17 +156,17 @@ export async function startXAuth(
 
   await env.DB.prepare(
     `INSERT INTO oauth_states
-      (state, code_verifier, company, title, comment, anonymous, expires_at, flow_id)
-     VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
+      (state, code_verifier, company, title, comment, anonymous, expires_at, flow_id, intent)
+     VALUES (?, ?, NULL, ?, ?, 0, ?, ?, ?)`,
   )
     .bind(
       state,
       codeVerifier,
-      draft.company,
       draft.title,
       draft.comment,
       expiresAt,
       flowId,
+      safeIntent,
     )
     .run();
 
@@ -114,6 +203,7 @@ export type OAuthStateRow = {
   comment: string | null;
   expires_at: string;
   flow_id: string | null;
+  intent: string | null;
 };
 
 /**
@@ -127,7 +217,7 @@ export async function loadAndConsumeState(
   const row = await env.DB.prepare(
     `DELETE FROM oauth_states
      WHERE state = ? AND expires_at >= datetime('now')
-     RETURNING state, code_verifier, company, title, comment, expires_at, flow_id`,
+     RETURNING state, code_verifier, company, title, comment, expires_at, flow_id, intent`,
   )
     .bind(state)
     .first<OAuthStateRow>();
@@ -157,6 +247,9 @@ export async function exchangeCodeForUser(
       username: `dev_user_${n}`,
       name: `Dev User ${n}`,
       avatarUrl: null,
+      // Mock has no real affiliation
+      company: null,
+      companyHandle: null,
     };
   }
 
@@ -201,18 +294,16 @@ export async function exchangeCodeForUser(
     );
   }
 
-  const me = (await meRes.json()) as {
-    data?: {
-      id: string;
-      username: string;
-      name: string;
-      profile_image_url?: string;
-    };
-  };
+  const me = (await meRes.json()) as MeResponse;
 
   if (!me.data?.id || !me.data.username) {
     throw new Error("Invalid X profile response");
   }
+
+  const { company, companyHandle } = companyFromAffiliation(
+    me.data.affiliation,
+    me.includes?.users ?? [],
+  );
 
   return {
     id: me.data.id,
@@ -221,5 +312,7 @@ export async function exchangeCodeForUser(
     avatarUrl: sanitizeAvatarUrl(
       me.data.profile_image_url?.replace("_normal", "_400x400") ?? null,
     ),
+    company,
+    companyHandle,
   };
 }
