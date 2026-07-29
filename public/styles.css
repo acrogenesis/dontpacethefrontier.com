@@ -522,12 +522,24 @@ textarea {
   border-radius: 8px;
   padding: 0.75rem 0.85rem;
   background: var(--surface-2);
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.2s;
 }
 
 .signatory-list li:hover {
   border-color: var(--surface-hover-border);
   background: var(--surface-hover);
+}
+
+/* Signers who left a public comment — quote card treatment */
+.signatory-list li.has-comment {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.signatory-list li.has-comment:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
 }
 
 .sig-name {
@@ -545,8 +557,91 @@ textarea {
 
 .sig-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
+}
+
+.sig-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sig-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sig-comment-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-soft);
+  text-decoration: none;
+  transition: background 0.15s, transform 0.15s, border-color 0.15s;
+}
+
+.sig-comment-badge:hover {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--accent);
+  transform: scale(1.06);
+}
+
+.sig-comment-badge-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
+.sig-quote {
+  margin: 0.55rem 0 0;
+  padding: 0.45rem 0 0 0.65rem;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--text-body);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.sig-quote.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  white-space: normal;
+  font-style: italic;
+}
+
+.sig-quote-expand {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-soft);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sig-quote-expand:hover {
+  color: var(--accent);
+}
+
+/* Avatar stays aligned when quote expands */
+.signatory-list li.has-comment .avatar,
+.signatory-list li.has-comment .avatar-fallback {
+  margin-top: 0.1rem;
 }
 
 .avatar {

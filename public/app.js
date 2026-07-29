@@ -84,6 +84,12 @@ function nextItemDelay() {
 function renderSignatory(s) {
   const li = document.createElement("li");
   li.style.setProperty("--item-delay", nextItemDelay());
+  if (s.id) li.dataset.sigId = String(s.id);
+
+  const comment = typeof s.comment === "string" ? s.comment.trim() : "";
+  const hasComment = Boolean(comment);
+  if (hasComment) li.classList.add("has-comment");
+
   const row = document.createElement("div");
   row.className = "sig-row";
 
@@ -106,17 +112,86 @@ function renderSignatory(s) {
   }
 
   const body = document.createElement("div");
+  body.className = "sig-body";
+
+  const top = document.createElement("div");
+  top.className = "sig-top";
+
+  const textCol = document.createElement("div");
   const name = document.createElement("p");
   name.className = "sig-name";
   appendText(name, s.name || "Signer");
   const meta = document.createElement("p");
   meta.className = "sig-meta";
   meta.appendChild(metaBits(s));
-  body.appendChild(name);
-  body.appendChild(meta);
+  textCol.appendChild(name);
+  textCol.appendChild(meta);
+  top.appendChild(textCol);
+
+  if (hasComment) {
+    // Quote badge — jumps to the featured comments section
+    const badge = document.createElement("a");
+    badge.className = "sig-comment-badge";
+    badge.href = "#comments";
+    badge.title = "View comment";
+    badge.setAttribute("aria-label", `View comment from ${s.name || "signer"}`);
+    const icon = document.createElement("span");
+    icon.className = "sig-comment-badge-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "❝";
+    badge.appendChild(icon);
+    top.appendChild(badge);
+  }
+
+  body.appendChild(top);
+
+  if (hasComment) {
+    const quote = document.createElement("p");
+    quote.className = "sig-quote";
+    appendText(quote, comment);
+    body.appendChild(quote);
+
+    // Expand only when the rail preview actually truncates
+    // (wired after mount via wireSigQuoteExpand)
+  }
+
   row.appendChild(body);
   li.appendChild(row);
   return li;
+}
+
+function wireSigQuoteExpand(li) {
+  if (!li.classList.contains("has-comment")) return;
+  const quote = li.querySelector(".sig-quote");
+  if (!quote) return;
+
+  quote.classList.add("is-clamped");
+  const overflows = quote.scrollHeight > quote.clientHeight + 2;
+  if (!overflows) {
+    // Short comments: still show the quote, no extra control
+    return;
+  }
+
+  let btn = li.querySelector(".sig-quote-expand");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "sig-quote-expand";
+    btn.textContent = "Show more";
+    quote.after(btn);
+  }
+  btn.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const expanding = quote.classList.contains("is-clamped");
+    if (expanding) {
+      quote.classList.remove("is-clamped");
+      btn.textContent = "Show less";
+    } else {
+      quote.classList.add("is-clamped");
+      btn.textContent = "Show more";
+    }
+  };
 }
 
 function renderComment(s) {
